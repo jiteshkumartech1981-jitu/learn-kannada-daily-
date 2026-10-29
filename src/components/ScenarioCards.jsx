@@ -43,7 +43,7 @@ const ICON_MAP = {
 export default function ScenarioCards() {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [speechSpeed, setSpeechSpeed] = useState(0.9); // 0.9 = normal, 0.7 = slow learner
+  const [speechSpeed, setSpeechSpeed] = useState(1.3); // 1.3 = normal fast, 1.0 = slow learner
   const [bookmarkedIds, setBookmarkedIds] = useState(new Set());
 
   // Audio playing state indicator
@@ -205,24 +205,34 @@ export default function ScenarioCards() {
             </span>
             <div className="flex gap-1.5">
               <button
-                onClick={() => setSpeechSpeed(0.9)}
+                onClick={() => setSpeechSpeed(1.6)}
                 className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors ${
-                  speechSpeed === 0.9
+                  speechSpeed === 1.6
                     ? 'bg-white text-slate-900 shadow-xs'
                     : 'bg-white/20 text-white hover:bg-white/30'
                 }`}
               >
-                Normal (1.0x)
+                Fast (1.6x)
               </button>
               <button
-                onClick={() => setSpeechSpeed(0.7)}
+                onClick={() => setSpeechSpeed(1.3)}
                 className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors ${
-                  speechSpeed === 0.7
+                  speechSpeed === 1.3
                     ? 'bg-white text-slate-900 shadow-xs'
                     : 'bg-white/20 text-white hover:bg-white/30'
                 }`}
               >
-                Learner (0.7x)
+                Normal (1.3x)
+              </button>
+              <button
+                onClick={() => setSpeechSpeed(1.0)}
+                className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors ${
+                  speechSpeed === 1.0
+                    ? 'bg-white text-slate-900 shadow-xs'
+                    : 'bg-white/20 text-white hover:bg-white/30'
+                }`}
+              >
+                Slow (1.0x)
               </button>
             </div>
           </div>
@@ -365,7 +375,7 @@ export default function ScenarioCards() {
                     }`}
                   >
                     <Volume2 className={`w-4 h-4 ${isAudioPlaying ? 'animate-bounce' : ''}`} />
-                    <span>{isAudioPlaying ? 'Playing Audio...' : `Listen (${speechSpeed === 0.7 ? 'Slow' : 'Native'})`}</span>
+                    <span>{isAudioPlaying ? 'Playing Audio...' : `Listen (${speechSpeed === 1.0 ? 'Slow' : speechSpeed === 1.6 ? 'Fast' : 'Normal'})`}</span>
                   </button>
 
                   {/* Practice Speaking Button */}
