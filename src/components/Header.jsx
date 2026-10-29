@@ -42,7 +42,7 @@ export default function Header({ activeMode, setActiveMode, scenarioCount }) {
                 </span>
               </div>
               <p className="text-[11px] text-slate-500 font-medium">
-                Tracks 01 & 03: Kannada for Everyday Life & Learning
+                Track 01: Kannada for Everyday Life
               </p>
             </div>
           </div>
@@ -111,3 +111,4 @@ export default function Header({ activeMode, setActiveMode, scenarioCount }) {
     </header>
   );
 }
+
