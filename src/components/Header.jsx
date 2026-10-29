@@ -80,7 +80,7 @@ export default function Header({ activeMode, setActiveMode, scenarioCount }) {
               <span className="hidden sm:inline">ನಮಸ್ಕಾರ</span>
             </button>
             <span className="px-2.5 py-1 text-[11px] font-bold bg-amber-500 text-white rounded-md shadow-xs hidden sm:inline">
-              Tracks 01 + 03
+              Tracks 01
             </span>
           </div>
 
