@@ -1,11 +1,50 @@
-// Speech synthesis (Text to Speech) with speed control
-export const playKannadaTTS = (text, rate = 0.9) => {
-  if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
-    console.warn('Speech synthesis not supported');
-    return;
+// Global audio instance to stop any previous audio
+let currentAudioInstance = null;
+
+// Dual-Engine Audio: Native Kannada Online TTS + SpeechSynthesis Fallback
+export const playKannadaTTS = (text, rate = 0.9, onEndCallback = null) => {
+  if (typeof window === 'undefined') return;
+
+  // Stop any active audio
+  if (currentAudioInstance) {
+    currentAudioInstance.pause();
+    currentAudioInstance.currentTime = 0;
+    currentAudioInstance = null;
+  }
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.cancel();
   }
 
-  window.speechSynthesis.cancel(); // Stop current speech
+  // Engine 1: Google Native Kannada Neural TTS Audio (Works on ALL browsers including Windows & Brave)
+  try {
+    const encodedText = encodeURIComponent(text.trim());
+    const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=kn&client=tw-ob&q=${encodedText}`;
+    const audio = new Audio(ttsUrl);
+    audio.playbackRate = rate;
+    currentAudioInstance = audio;
+
+    audio.onended = () => {
+      currentAudioInstance = null;
+      if (onEndCallback) onEndCallback();
+    };
+
+    const playPromise = audio.play();
+    if (playPromise !== undefined) {
+      playPromise.catch((err) => {
+        console.warn('Online Kannada TTS blocked or offline, falling back to SpeechSynthesis:', err);
+        fallbackToSpeechSynthesis(text, rate, onEndCallback);
+      });
+    }
+    return;
+  } catch (err) {
+    console.warn('Audio element error, using SpeechSynthesis:', err);
+    fallbackToSpeechSynthesis(text, rate, onEndCallback);
+  }
+};
+
+// Fallback Engine 2: Local browser SpeechSynthesis
+const fallbackToSpeechSynthesis = (text, rate, onEndCallback) => {
+  if (!('speechSynthesis' in window)) return;
 
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.rate = rate;
@@ -15,13 +54,25 @@ export const playKannadaTTS = (text, rate = 0.9) => {
   const kannadaVoice = voices.find(
     v => v.lang === 'kn-IN' || v.lang.startsWith('kn') || v.name.toLowerCase().includes('kannada')
   ) || voices.find(
-    v => v.lang === 'hi-IN' || v.lang === 'en-IN'
+    v => v.lang.includes('IN')
   );
 
   if (kannadaVoice) {
     utterance.voice = kannadaVoice;
   }
-  utterance.lang = 'kn-IN';
+  utterance.lang = kannadaVoice ? kannadaVoice.lang : 'hi-IN';
+
+  utterance.onend = () => {
+    if (onEndCallback) onEndCallback();
+  };
+  utterance.onerror = () => {
+    if (onEndCallback) onEndCallback();
+  };
+
+  // Chromium fix for paused synthesis bug
+  if (window.speechSynthesis.paused) {
+    window.speechSynthesis.resume();
+  }
 
   window.speechSynthesis.speak(utterance);
 };
@@ -32,7 +83,7 @@ export const isSpeechRecognitionSupported = () => {
     ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window);
 };
 
-// Create Speech Recognizer instance for Kannada
+// Create Speech Recognizer instance for Kannada with robust error handling
 export const createSpeechRecognizer = ({ onResult, onError, onEnd }) => {
   if (!isSpeechRecognitionSupported()) return null;
 
@@ -42,11 +93,14 @@ export const createSpeechRecognizer = ({ onResult, onError, onEnd }) => {
   recognition.interimResults = true;
   recognition.lang = 'kn-IN';
 
+  let hasReceivedResult = false;
+
   recognition.onresult = (event) => {
     let transcript = '';
     for (let i = event.resultIndex; i < event.results.length; ++i) {
       transcript += event.results[i][0].transcript;
     }
+    hasReceivedResult = true;
     if (onResult) {
       const isFinal = event.results[event.results.length - 1].isFinal;
       onResult(transcript, isFinal);
@@ -54,12 +108,12 @@ export const createSpeechRecognizer = ({ onResult, onError, onEnd }) => {
   };
 
   recognition.onerror = (event) => {
-    console.error('Speech recognition error:', event.error);
+    console.error('Speech recognition error event:', event.error);
     if (onError) onError(event.error);
   };
 
   recognition.onend = () => {
-    if (onEnd) onEnd();
+    if (onEnd) onEnd(hasReceivedResult);
   };
 
   return recognition;
@@ -85,7 +139,7 @@ export const evaluatePronunciation = (spoken, targetKannada, targetKeywords = []
   const targetWords = targetKannada.split(/\s+/);
   let wordMatches = 0;
   for (const word of targetWords) {
-    if (cleanSpoken.includes(word)) {
+    if (cleanSpoken.includes(word.toLowerCase())) {
       wordMatches++;
     }
   }
@@ -94,5 +148,5 @@ export const evaluatePronunciation = (spoken, targetKannada, targetKeywords = []
     return Math.min(100, Math.round((wordMatches / targetWords.length) * 100));
   }
 
-  return Math.min(90, Math.max(35, Math.round(cleanSpoken.length * 8)));
+  return Math.min(95, Math.max(45, Math.round(cleanSpoken.length * 9)));
 };
