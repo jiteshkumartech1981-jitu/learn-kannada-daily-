@@ -1,44 +1,43 @@
 import React, { useState } from 'react';
-import Navbar from './components/Navbar';
-import HomeView from './components/HomeView';
-import LearnScenariosView from './components/LearnScenariosView';
-import VoiceCoachView from './components/VoiceCoachView';
-import DialectExplorerView from './components/DialectExplorerView';
-import OcrDigitizerView from './components/OcrDigitizerView';
-import TravelPlannerView from './components/TravelPlannerView';
+import Header from './components/Header';
+import ScenarioCards from './components/ScenarioCards';
+import FlashcardMode from './components/FlashcardMode';
+import QuizMode from './components/QuizMode';
+import CheatSheetMode from './components/CheatSheetMode';
 import Footer from './components/Footer';
+import { SITUATIONS } from './data/situations';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('home');
+  const [activeMode, setActiveMode] = useState('scenarios'); // 'scenarios' | 'flashcards' | 'quiz' | 'cheatsheet'
 
-  const renderActiveView = () => {
-    switch (activeTab) {
-      case 'home':
-        return <HomeView setActiveTab={setActiveTab} />;
-      case 'learn':
-        return <LearnScenariosView setActiveTab={setActiveTab} />;
-      case 'voice':
-        return <VoiceCoachView />;
-      case 'dialects':
-        return <DialectExplorerView />;
-      case 'ocr':
-        return <OcrDigitizerView />;
-      case 'travel':
-        return <TravelPlannerView />;
+  const renderActiveMode = () => {
+    switch (activeMode) {
+      case 'scenarios':
+        return <ScenarioCards />;
+      case 'flashcards':
+        return <FlashcardMode />;
+      case 'quiz':
+        return <QuizMode />;
+      case 'cheatsheet':
+        return <CheatSheetMode />;
       default:
-        return <HomeView setActiveTab={setActiveTab} />;
+        return <ScenarioCards />;
     }
   };
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900 font-sans selection:bg-amber-400 selection:text-slate-900">
-      <Navbar activeTab={activeTab} setActiveTab={setActiveTab} />
+      <Header 
+        activeMode={activeMode} 
+        setActiveMode={setActiveMode} 
+        scenarioCount={SITUATIONS.length} 
+      />
       
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-8">
-        {renderActiveView()}
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8">
+        {renderActiveMode()}
       </main>
 
-      <Footer setActiveTab={setActiveTab} />
+      <Footer setActiveMode={setActiveMode} />
     </div>
   );
 }

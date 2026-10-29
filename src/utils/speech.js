@@ -1,17 +1,16 @@
-// Speech synthesis (Text to Speech)
+// Speech synthesis (Text to Speech) with speed control
 export const playKannadaTTS = (text, rate = 0.9) => {
-  if (!('speechSynthesis' in window)) {
-    alert('Speech synthesis is not supported in this browser.');
+  if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+    console.warn('Speech synthesis not supported');
     return;
   }
 
-  window.speechSynthesis.cancel(); // Stop any pending utterance
+  window.speechSynthesis.cancel(); // Stop current speech
 
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.rate = rate;
   utterance.pitch = 1.0;
 
-  // Try to pick a Kannada voice or Indian regional voice
   const voices = window.speechSynthesis.getVoices();
   const kannadaVoice = voices.find(
     v => v.lang === 'kn-IN' || v.lang.startsWith('kn') || v.name.toLowerCase().includes('kannada')
@@ -27,21 +26,21 @@ export const playKannadaTTS = (text, rate = 0.9) => {
   window.speechSynthesis.speak(utterance);
 };
 
-// Check if browser supports speech recognition
+// Check if browser speech recognition is supported
 export const isSpeechRecognitionSupported = () => {
   return typeof window !== 'undefined' &&
     ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window);
 };
 
-// Initialize Speech Recognizer
-export const createSpeechRecognizer = ({ lang = 'kn-IN', onResult, onError, onEnd }) => {
+// Create Speech Recognizer instance for Kannada
+export const createSpeechRecognizer = ({ onResult, onError, onEnd }) => {
   if (!isSpeechRecognitionSupported()) return null;
 
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   const recognition = new SpeechRecognition();
   recognition.continuous = false;
   recognition.interimResults = true;
-  recognition.lang = lang;
+  recognition.lang = 'kn-IN';
 
   recognition.onresult = (event) => {
     let transcript = '';
@@ -66,24 +65,34 @@ export const createSpeechRecognizer = ({ lang = 'kn-IN', onResult, onError, onEn
   return recognition;
 };
 
-// Levenshtein distance based score (0 to 100%)
-export const calculateSpeechMatchScore = (spokenText, targetKeywords = []) => {
-  if (!spokenText) return 0;
-  const cleanSpoken = spokenText.trim().toLowerCase();
-
-  // Keyword presence check
-  let matchedKeywords = 0;
-  for (const keyword of targetKeywords) {
-    if (cleanSpoken.includes(keyword.toLowerCase())) {
-      matchedKeywords++;
+// Calculate match score between spoken text and target Kannada text
+export const evaluatePronunciation = (spoken, targetKannada, targetKeywords = []) => {
+  if (!spoken) return 0;
+  const cleanSpoken = spoken.trim().toLowerCase();
+  
+  let matches = 0;
+  for (const kw of targetKeywords) {
+    if (cleanSpoken.includes(kw.toLowerCase())) {
+      matches++;
     }
   }
 
-  if (targetKeywords.length > 0 && matchedKeywords > 0) {
-    const keywordRatio = (matchedKeywords / targetKeywords.length) * 100;
-    return Math.min(100, Math.round(keywordRatio));
+  if (targetKeywords.length > 0 && matches > 0) {
+    return Math.min(100, Math.round((matches / targetKeywords.length) * 100));
   }
 
-  // Fallback simple similarity
-  return Math.min(95, Math.max(30, Math.round(cleanSpoken.length * 8)));
+  // Token overlap check
+  const targetWords = targetKannada.split(/\s+/);
+  let wordMatches = 0;
+  for (const word of targetWords) {
+    if (cleanSpoken.includes(word)) {
+      wordMatches++;
+    }
+  }
+
+  if (wordMatches > 0) {
+    return Math.min(100, Math.round((wordMatches / targetWords.length) * 100));
+  }
+
+  return Math.min(90, Math.max(35, Math.round(cleanSpoken.length * 8)));
 };
