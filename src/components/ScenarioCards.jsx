@@ -16,7 +16,7 @@ const ICON_MAP = { Sparkles, Car, ShoppingBag, Utensils, Package, HeartPulse, Br
 export default function ScenarioCards() {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [speechSpeed, setSpeechSpeed] = useState(1.3);
+  const [speechSpeed, setSpeechSpeed] = useState(1.0);
   const [bookmarkedIds, setBookmarkedIds] = useState(new Set());
 
   // Audio
@@ -196,9 +196,9 @@ export default function ScenarioCards() {
             </span>
             <div className="flex gap-1.5">
               {[
-                { label: 'Fast', rate: 1.6 },
-                { label: 'Normal', rate: 1.3 },
-                { label: 'Slow', rate: 0.8 },
+                { label: 'Fast', rate: 1.5 },
+                { label: 'Normal', rate: 1.0 },
+                { label: 'Slow', rate: 0.7 },
               ].map(({ label, rate }) => (
                 <button
                   key={rate}

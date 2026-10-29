@@ -45,7 +45,7 @@ const pickVoice = (voices) => {
 };
 
 // Main speak function with multiple retries
-export const playKannadaTTS = (text, rate = 1.3, onEnd = null) => {
+export const playKannadaTTS = (text, rate = 1.0, onEnd = null) => {
   if (typeof window === 'undefined' || !window.speechSynthesis) {
     if (onEnd) onEnd();
     return;
@@ -53,62 +53,75 @@ export const playKannadaTTS = (text, rate = 1.3, onEnd = null) => {
 
   const synth = window.speechSynthesis;
 
-  // Cancel previous
+  // Cancel previous speech
   synth.cancel();
 
   const doSpeak = () => {
-    const voices = ensureVoices();
-    const voice = pickVoice(voices);
+    // ⚠️ CRITICAL FIX: Wait 120ms after cancel() before speak()
+    // Chromium (Brave/Chrome/Edge) cancel() is async — calling speak()
+    // immediately after cancel() causes the utterance to be silently dropped.
+    setTimeout(() => {
+      const voices = synth.getVoices();
+      if (voices.length > 0) _voiceCache = voices;
+      const voice = pickVoice(_voiceCache || []);
 
-    const utter = new SpeechSynthesisUtterance(text.trim());
-    utter.rate = rate;
-    utter.pitch = 1.1;
-    utter.volume = 1.0;
-    
-    if (voice) {
-      utter.voice = voice;
-      utter.lang = voice.lang;
-    } else {
-      // No voice found — use default lang, browser will use its default voice
-      utter.lang = 'en-IN';
-    }
+      const utter = new SpeechSynthesisUtterance(text.trim());
+      utter.rate = Math.max(0.5, Math.min(2.0, rate));
+      utter.pitch = 1.0;
+      utter.volume = 1.0;
 
-    utter.onend = () => { if (onEnd) onEnd(); };
-    utter.onerror = (e) => {
-      console.warn('TTS error:', e);
-      if (onEnd) onEnd();
-    };
+      if (voice) {
+        utter.voice = voice;
+        utter.lang = voice.lang;
+      } else {
+        utter.lang = 'kn-IN'; // let browser pick best available
+      }
 
-    // Fix Chromium pause bug
-    if (synth.paused) synth.resume();
-    
-    synth.speak(utter);
+      // Fix Chromium pause bug
+      if (synth.paused) synth.resume();
 
-    // Chromium long-utterance bug: periodically pause/resume
-    const keepAlive = setInterval(() => {
-      if (!synth.speaking) { clearInterval(keepAlive); return; }
-      synth.pause();
-      synth.resume();
-    }, 8000);
+      // Chromium long-utterance keepalive
+      let keepAlive;
+      utter.onstart = () => {
+        keepAlive = setInterval(() => {
+          if (!synth.speaking) { clearInterval(keepAlive); return; }
+          synth.pause();
+          synth.resume();
+        }, 8000);
+      };
 
-    utter.onend = () => {
-      clearInterval(keepAlive);
-      if (onEnd) onEnd();
-    };
+      utter.onend = () => {
+        clearInterval(keepAlive);
+        if (onEnd) onEnd();
+      };
+
+      utter.onerror = (e) => {
+        clearInterval(keepAlive);
+        console.warn('TTS error:', e.error, '| text:', text.slice(0, 30));
+        if (onEnd) onEnd();
+      };
+
+      synth.speak(utter);
+    }, 120); // 120ms delay — the critical fix!
   };
 
-  // Try immediately
+  // Try immediately if voices are already loaded
   const immediateVoices = synth.getVoices();
   if (immediateVoices.length > 0) {
     _voiceCache = immediateVoices;
     doSpeak();
   } else {
-    // Voices not ready — wait up to 1.5s for voiceschanged, then speak anyway
+    // Voices not ready — wait for voiceschanged or fallback after 1.5s
+    let fired = false;
     const timer = setTimeout(() => {
-      doSpeak(); // speak with whatever voice is available (even default)
+      if (fired) return;
+      fired = true;
+      doSpeak();
     }, 1500);
 
     const handler = () => {
+      if (fired) return;
+      fired = true;
       clearTimeout(timer);
       _voiceCache = synth.getVoices();
       synth.removeEventListener('voiceschanged', handler);
