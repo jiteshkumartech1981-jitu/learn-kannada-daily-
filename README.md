@@ -1,6 +1,6 @@
 # KannadaDaily (ಕನ್ನಡ ದಿನದಿನ) — Practical Kannada for Everyday Life
 
-A focused, interactive web platform engineered for the **Kannada Technology Challenge** hackathon, merging **Track 01 (Language Learning: Kannada for Everyone)** and **Track 03 (Real-World Application: Kannada in Everyday Life)** into a cohesive product.
+A focused, interactive web platform engineered for the **Kannada Technology Challenge** hackathon, merging **Track 01 (Language Learning: Kannada for Everyone)** into a cohesive product.
 
 ---
 
