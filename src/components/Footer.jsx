@@ -20,7 +20,8 @@ export default function Footer({ setActiveMode }) {
               </span>
             </div>
             <p className="text-xs text-slate-500 max-w-md">
-              Developed for the <strong>Kannada Technology Challenge</strong>. Merging <strong>Track 01 (Language Learning)</strong>
+              Developed for the <strong>Kannada Technology Challenge</strong>. 
+              <strong>Track 01 (Language Learning)</strong>
             </p>
           </div>
 
